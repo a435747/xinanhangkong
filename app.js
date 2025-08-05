@@ -49,7 +49,14 @@ app.get('/api/images/*', (req, res) => {
       });
     }
     
-    const imageUrl = `${STORAGE_BASE_URL}/${imagePath}`;
+    // 处理双层images目录结构
+    // 如果路径是 images/xxx，需要映射到 images/images/xxx
+    let actualPath = imagePath;
+    if (imagePath.startsWith('images/')) {
+      actualPath = `images/${imagePath}`;
+    }
+    
+    const imageUrl = `${STORAGE_BASE_URL}/${actualPath}`;
     console.log(`图片代理请求: ${imagePath} -> ${imageUrl}`);
     
     // 重定向到对象存储
