@@ -19,30 +19,37 @@ app.get('/health', (req, res) => {
   });
 });
 
-// 根路径
+// 根路径 - 显示所有可用接口
 app.get('/', (req, res) => {
   res.json({
     message: "🌲 名师林数字化小程序API",
-    version: "1.0.0",
-    status: "running",
+    version: "1.0.1",
+    status: "running", 
+    timestamp: new Date().toISOString(),
     endpoints: {
       health: "/health",
-      trees: "/api/trees",
+      trees: "/api/trees/:id",
       treePoints: "/api/tree-points", 
       care: "/api/care",
       comments: "/api/comments",
-      images: "/api/images", // 新增图片接口
+      images: "/api/images/*",
       count: "/api/count"
     }
   });
 });
 
-// 🖼️ 图片代理接口 - 关键新增功能
-app.get('/api/images/*', async (req, res) => {
+// 🖼️ 图片代理接口 - 重要：放在具体路由之前
+app.get('/api/images/*', (req, res) => {
   try {
-    const imagePath = req.params[0]; // 获取图片路径
-    const imageUrl = `${STORAGE_BASE_URL}/${imagePath}`;
+    const imagePath = req.params[0];
+    if (!imagePath) {
+      return res.status(400).json({
+        code: -1,
+        message: '图片路径不能为空'
+      });
+    }
     
+    const imageUrl = `${STORAGE_BASE_URL}/${imagePath}`;
     console.log(`图片代理请求: ${imagePath} -> ${imageUrl}`);
     
     // 重定向到对象存储
@@ -52,8 +59,8 @@ app.get('/api/images/*', async (req, res) => {
     console.error('图片获取失败:', error);
     res.status(404).json({
       code: -1,
-      message: '图片不存在',
-      path: req.params[0]
+      message: '图片获取失败',
+      path: req.params[0] || 'unknown'
     });
   }
 });
@@ -63,11 +70,10 @@ app.get('/api/tree-points', (req, res) => {
   try {
     const { region } = req.query;
     
-    // 模拟树木坐标点数据
     const mockTreePoints = [
       {
         id: "1",
-        name: "梧桐树",
+        name: "梧桐树", 
         x: 300,
         y: 200,
         region: "名师林",
@@ -75,9 +81,9 @@ app.get('/api/tree-points', (req, res) => {
         health: "健康"
       },
       {
-        id: "2", 
+        id: "2",
         name: "银杏树",
-        x: 500,
+        x: 500, 
         y: 350,
         region: "名师林",
         level: 3,
@@ -108,11 +114,10 @@ app.get('/api/trees/:treeId', (req, res) => {
   try {
     const { treeId } = req.params;
     
-    // 模拟树木详情数据
     const mockTreeDetail = {
       id: treeId,
       name: "梧桐树",
-      species: "法桐",
+      species: "法桐", 
       age: 8,
       height: "12米",
       diameter: "30厘米",
@@ -126,7 +131,7 @@ app.get('/api/trees/:treeId', (req, res) => {
         {
           id: "1",
           type: "浇水",
-          date: "2024-08-01",
+          date: "2024-08-01", 
           operator: "张同学",
           notes: "定期浇水维护"
         }
@@ -155,7 +160,6 @@ app.post('/api/care', (req, res) => {
   try {
     const { treeId, careType, expValue, photoUrl } = req.body;
     
-    // 模拟护理记录处理
     const careRecord = {
       id: Date.now().toString(),
       treeId,
@@ -179,7 +183,7 @@ app.post('/api/care', (req, res) => {
   }
 });
 
-// 💬 评论相关
+// 💬 添加评论
 app.post('/api/comments', (req, res) => {
   try {
     const { treeId, content } = req.body;
@@ -206,11 +210,11 @@ app.post('/api/comments', (req, res) => {
   }
 });
 
+// 💬 获取评论
 app.get('/api/comments/:treeId', (req, res) => {
   try {
     const { treeId } = req.params;
     
-    // 模拟评论数据
     const mockComments = [
       {
         id: "1",
@@ -235,11 +239,61 @@ app.get('/api/comments/:treeId', (req, res) => {
   }
 });
 
+// 📊 计数接口
+app.post('/api/count', (req, res) => {
+  try {
+    const { action } = req.body;
+    
+    if (action === 'inc') {
+      const count = Math.floor(Math.random() * 100) + 1;
+      
+      res.json({
+        code: 0,
+        data: {
+          count: count,
+          action: 'inc',
+          timestamp: new Date().toISOString()
+        },
+        message: '计数成功'
+      });
+    } else {
+      res.status(400).json({
+        code: -1,
+        message: '无效的操作类型'
+      });
+    }
+  } catch (error) {
+    res.status(500).json({
+      code: -1, 
+      message: '计数操作失败：' + error.message
+    });
+  }
+});
 
+// 404处理 - 放在最后
+app.use('*', (req, res) => {
+  res.status(404).json({
+    code: -1,
+    message: `接口 ${req.originalUrl} 不存在`,
+    availableEndpoints: [
+      '/health',
+      '/',
+      '/api/tree-points',
+      '/api/trees/:id',
+      '/api/care',
+      '/api/comments',
+      '/api/comments/:treeId',
+      '/api/images/*',
+      '/api/count'
+    ]
+  });
+});
 
 // 启动服务器
 app.listen(port, () => {
   console.log(`🚀 名师林API服务运行在端口 ${port}`);
   console.log(`📊 健康检查: http://localhost:${port}/health`);
   console.log(`🖼️ 图片代理: http://localhost:${port}/api/images/images/1.png`);
+  console.log(`🌳 树木接口: http://localhost:${port}/api/trees/1`);
+  console.log(`📍 坐标接口: http://localhost:${port}/api/tree-points`);
 });
