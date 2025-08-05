@@ -8,7 +8,7 @@ app.use(cors());
 app.use(express.json());
 
 // 对象存储配置
-const STORAGE_BASE_URL = 'https://7072-prod-1guuly5pb8565610-1371111601.tcb.qcloud.la';
+const STORAGE_BASE_URL = 'https://636c-cloudbase-8geef97fbe06f6f1.tcb.qcloud.la';
 
 // 健康检查
 app.get('/health', (req, res) => {
