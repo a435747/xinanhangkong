@@ -41,7 +41,7 @@ function generateSign(params, apiKey) {
   const sortedParams = Object.keys(params)
     .filter(key => params[key] !== '' && key !== 'sign')
     .sort()
-    .map(key => `${key}=${params[key]`)
+    .map(key => `${key}=${params[key]}`)
     .join('&');
   
   // 2. 拼接API密钥
