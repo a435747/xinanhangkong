@@ -1,21 +1,23 @@
 {
-  "name": "wxcloudrun-express",
+  "name": "tree-care-api",
   "version": "1.0.0",
-  "description": "微信云托管 express 框架模版",
-  "main": "index.js",
+  "description": "名师林数字化小程序后端API",
+  "main": "app.js",
   "scripts": {
-    "start": "node index.js"
+    "start": "node app.js",
+    "dev": "nodemon app.js",
+    "build": "echo 'Build completed'"
   },
-  "author": "",
-  "license": "Apache-2.0",
   "dependencies": {
+    "express": "^4.18.2",
     "cors": "^2.8.5",
-    "express": "^4.16.4",
-    "morgan": "^1.10.0",
-    "mysql2": "^2.3.2",
-    "sequelize": "^6.8.0"
+    "dotenv": "^16.0.3",
+    "wx-server-sdk": "~2.6.3"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.22"
   },
   "engines": {
-    "node": ">=12.0.0"
+    "node": ">=16.0.0"
   }
 }
