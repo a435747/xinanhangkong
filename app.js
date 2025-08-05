@@ -35,46 +35,6 @@ app.get('/', (req, res) => {
   });
 });
 
-// 树木相关API
-app.get('/api/trees', async (req, res) => {
-  try {
-    // 返回树木列表数据
-    res.json({
-      code: 0,
-      data: [
-        {
-          id: "1",
-          name: "银杏树",
-          type: "乔木",
-          scientificName: "Ginkgo biloba",
-          location: "名师林",
-          x: 150,
-          y: 150,
-          growthLevel: 1,
-          status: "healthy"
-        },
-        {
-          id: "2", 
-          name: "樱花树",
-          type: "乔木",
-          scientificName: "Prunus serrulata",
-          location: "名师林",
-          x: 200,
-          y: 200,
-          growthLevel: 2,
-          status: "healthy"
-        }
-      ],
-      message: '获取树木列表成功'
-    });
-  } catch (error) {
-    res.status(500).json({
-      code: -1,
-      message: '获取树木列表失败：' + error.message
-    });
-  }
-});
-
 // 获取树木坐标点
 app.get('/api/tree-points', async (req, res) => {
   try {
@@ -135,25 +95,8 @@ app.get('/api/trees/:treeId', async (req, res) => {
             process.env.IMAGE_BASE_URL + "/images/1.png"
           ]
         },
-        careHistory: [
-          {
-            id: "1",
-            type: "浇水",
-            userId: "user123",
-            userName: "园丁小王",
-            exp: 10,
-            createdAt: new Date()
-          }
-        ],
-        comments: [
-          {
-            id: "1",
-            content: "这棵银杏树真的很美！",
-            userId: "user456",
-            userName: "自然爱好者",
-            createdAt: new Date()
-          }
-        ],
+        careHistory: [],
+        comments: [],
         isCollected: false,
         canWater: true,
         canFertilize: true,
