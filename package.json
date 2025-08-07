@@ -1,8 +1,8 @@
 {
   "name": "tree-care-payment-api",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "名师林数字化小程序支付API服务",
-  "main": "app.js",
+  "main": "app-fixed.js",
   "scripts": {
     "start": "node app.js",
     "dev": "nodemon app.js",
