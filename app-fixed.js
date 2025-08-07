@@ -277,7 +277,11 @@ app.post('/api/auth/login', async (req, res) => {
         secret: process.env.WECHAT_SECRET || '你需要在环境变量中配置小程序secret',
         js_code: code,
         grant_type: 'authorization_code'
-      }
+      },
+      httpsAgent: new (require('https').Agent)({
+        rejectUnauthorized: false
+      }),
+      timeout: 10000
     });
     
     if (response.data.errcode) {
