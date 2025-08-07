@@ -142,6 +142,9 @@ async function callUnifiedOrder(orderInfo) {
       headers: {
         'Content-Type': 'application/xml'
       },
+      httpsAgent: new (require('https').Agent)({
+        rejectUnauthorized: false
+      }),
       timeout: 10000
     });
     
@@ -223,6 +226,9 @@ async function queryOrderStatus(orderId) {
       headers: {
         'Content-Type': 'application/xml'
       },
+      httpsAgent: new (require('https').Agent)({
+        rejectUnauthorized: false
+      }),
       timeout: 10000
     });
     
