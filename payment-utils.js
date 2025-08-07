@@ -12,8 +12,8 @@ const PAYMENT_CONFIG = {
   mchId: process.env.WECHAT_MCHID || '1723052039',
   apiKey: process.env.WECHAT_API_KEY || '6yHvP4n9JgKbL7qRd1tF8cYxXaZ2wE39',
   notifyUrl: process.env.PAYMENT_NOTIFY_URL || 'https://test-175573-5-1371111601.sh.run.tcloudbase.com/api/payment/notify',
-  unifiedOrderUrl: 'https://api.mch.weixin.qq.com/pay/unifiedorder',
-  orderQueryUrl: 'https://api.mch.weixin.qq.com/pay/orderquery'
+  unifiedOrderUrl: process.env.NODE_ENV === 'development' ? 'https://api.mch.weixin.qq.com/sandboxnew/pay/unifiedorder' : 'https://api.mch.weixin.qq.com/pay/unifiedorder',
+  orderQueryUrl: process.env.NODE_ENV === 'development' ? 'https://api.mch.weixin.qq.com/sandboxnew/pay/orderquery' : 'https://api.mch.weixin.qq.com/pay/orderquery'
 };
 
 /**
@@ -127,7 +127,7 @@ async function callUnifiedOrder(orderInfo) {
     spbill_create_ip: clientIp,
     notify_url: PAYMENT_CONFIG.notifyUrl,
     trade_type: 'JSAPI',
-    openid: userId.startsWith('test_') ? 'oGZUI0egBJY1ik-5AgWnSjIDfa7c' : userId
+    openid: userId.startsWith('test_') || userId.startsWith('oGZUI') ? process.env.WECHAT_APPID : userId
   };
   
   // 生成签名
