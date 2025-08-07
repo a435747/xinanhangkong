@@ -430,6 +430,12 @@ app.post('/api/payment/unifiedorder', async (req, res) => {
     const now = new Date();
     
     try {
+      // 如果是测试用户，直接使用模拟支付
+      if (order.userId.startsWith('test_')) {
+        console.log('检测到测试用户，使用模拟支付模式');
+        throw new Error('模拟微信支付失败，切换到测试模式');
+      }
+      
       // 调用微信统一下单API
       const wechatResult = await paymentUtils.callUnifiedOrder({
         orderId,
@@ -493,8 +499,8 @@ app.post('/api/payment/unifiedorder', async (req, res) => {
     } catch (wechatError) {
       console.error('微信统一下单失败:', wechatError);
       
-      // 如果是测试环境，返回模拟数据
-      if (process.env.NODE_ENV === 'development') {
+      // 如果是测试环境或测试用户，返回模拟数据
+      if (process.env.NODE_ENV === 'development' || order.userId.startsWith('test_')) {
         const mockPayment = {
           paymentId,
           orderId,
