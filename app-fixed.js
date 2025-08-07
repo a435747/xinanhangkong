@@ -274,7 +274,7 @@ app.post('/api/auth/login', async (req, res) => {
     const response = await axios.get('https://api.weixin.qq.com/sns/jscode2session', {
       params: {
         appid: process.env.WECHAT_APPID || 'wxe48f433772f6ca68',
-        secret: process.env.WECHAT_SECRET || '你需要在环境变量中配置小程序secret',
+        secret: process.env.WECHAT_SECRET || 'b1bfc8790bb32b780bb9cf4f022958ef',
         js_code: code,
         grant_type: 'authorization_code'
       },
