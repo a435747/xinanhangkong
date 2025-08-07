@@ -494,7 +494,7 @@ app.post('/api/payment/unifiedorder', async (req, res) => {
       console.error('微信统一下单失败:', wechatError);
       
       // 如果是测试环境，返回模拟数据
-      if (process.env.NODE_ENV === 'development' || !paymentUtils.PAYMENT_CONFIG.mchId.startsWith('你的')) {
+      if (process.env.NODE_ENV === 'development') {
         const mockPayment = {
           paymentId,
           orderId,
