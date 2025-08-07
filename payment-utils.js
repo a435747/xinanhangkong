@@ -9,8 +9,8 @@ const axios = require('axios');
 // 微信支付配置
 const PAYMENT_CONFIG = {
   appId: process.env.WECHAT_APPID || 'wxe48f433772f6ca68',
-  mchId: process.env.WECHAT_MCHID || '你的商户号',
-  apiKey: process.env.WECHAT_API_KEY || '你的API密钥',
+  mchId: process.env.WECHAT_MCHID || '1723052039',
+  apiKey: process.env.WECHAT_API_KEY || '6yHvP4n9JgKbL7qRd1tF8cYxXaZ2wE39',
   notifyUrl: process.env.PAYMENT_NOTIFY_URL || 'https://test-175573-5-1371111601.sh.run.tcloudbase.com/api/payment/notify',
   unifiedOrderUrl: 'https://api.mch.weixin.qq.com/pay/unifiedorder',
   orderQueryUrl: 'https://api.mch.weixin.qq.com/pay/orderquery'
