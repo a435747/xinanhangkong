@@ -257,6 +257,56 @@ app.get('/api/comments/:treeId', (req, res) => {
   }
 });
 
+// 🔐 微信登录接口 - 通过code换取openid
+app.post('/api/auth/login', async (req, res) => {
+  try {
+    const { code } = req.body;
+    
+    if (!code) {
+      return res.status(400).json({
+        code: -1,
+        message: '缺少登录code'
+      });
+    }
+    
+    // 调用微信接口获取openid
+    const response = await axios.get('https://api.weixin.qq.com/sns/jscode2session', {
+      params: {
+        appid: process.env.WECHAT_APPID || 'wxe48f433772f6ca68',
+        secret: process.env.WECHAT_SECRET || '你需要在环境变量中配置小程序secret',
+        js_code: code,
+        grant_type: 'authorization_code'
+      }
+    });
+    
+    if (response.data.errcode) {
+      console.error('微信登录失败:', response.data);
+      return res.status(400).json({
+        code: -1,
+        message: '微信登录失败: ' + response.data.errmsg
+      });
+    }
+    
+    const { openid, session_key } = response.data;
+    
+    res.json({
+      code: 0,
+      data: {
+        openid,
+        sessionKey: session_key
+      },
+      message: '登录成功'
+    });
+    
+  } catch (error) {
+    console.error('登录接口错误:', error);
+    res.status(500).json({
+      code: -1,
+      message: '登录失败：' + error.message
+    });
+  }
+});
+
 // 📊 计数接口
 app.post('/api/count', (req, res) => {
   try {
