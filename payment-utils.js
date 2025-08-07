@@ -37,33 +37,32 @@ function generateNonceStr(length = 32) {
  * @returns {string} 签名
  */
 function generateSign(params, apiKey) {
-  // 1. 排序参数
-  const sortedParams = Object.keys(params)
+  // 排序参数
+  const sortedKeys = Object.keys(params).sort();
+  const sortedParams = sortedKeys
     .filter(key => params[key] !== '' && key !== 'sign')
-    .sort()
     .map(key => `${key}=${params[key]}`)
     .join('&');
   
-  // 2. 拼接API密钥
-  const stringToSign = `${sortedParams}&key=${apiKey}`;
+  // 拼接API密钥
+  const stringSignTemp = `${sortedParams}&key=${apiKey}`;
   
-  // 3. MD5加密并转为大写
-  return crypto.createHash('md5').update(stringToSign, 'utf8').digest('hex').toUpperCase();
+  // MD5签名并转大写
+  return crypto.createHash('md5').update(stringSignTemp, 'utf8').digest('hex').toUpperCase();
 }
 
 /**
- * 验证微信支付回调签名
- * @param {Object} data 回调数据
+ * 验证回调通知签名
+ * @param {Object} notifyData 回调数据
  * @returns {boolean} 验证结果
  */
-function verifyNotifySign(data) {
-  const receivedSign = data.sign;
-  delete data.sign; // 临时删除sign字段
+function verifyNotifySign(notifyData) {
+  const receivedSign = notifyData.sign;
+  delete notifyData.sign;
   
-  const calculatedSign = generateSign(data, PAYMENT_CONFIG.apiKey);
+  const calculatedSign = generateSign(notifyData, PAYMENT_CONFIG.apiKey);
   
-  // 恢复sign字段
-  data.sign = receivedSign;
+  notifyData.sign = receivedSign;
   
   return receivedSign === calculatedSign;
 }
@@ -75,14 +74,11 @@ function verifyNotifySign(data) {
  */
 function objectToXml(obj) {
   let xml = '<xml>';
-  Object.keys(obj).forEach(key => {
-    const value = obj[key];
-    if (typeof value === 'object' && value !== null) {
-      xml += `<${key}>${objectToXml(value)}</${key}>`;
-    } else {
-      xml += `<${key}><![CDATA[${value}]]></${key}>`;
+  for (const key in obj) {
+    if (obj.hasOwnProperty(key)) {
+      xml += `<${key}><![CDATA[${obj[key]}]]></${key}>`;
     }
-  });
+  }
   xml += '</xml>';
   return xml;
 }
@@ -94,11 +90,13 @@ function objectToXml(obj) {
  */
 function xmlToObject(xml) {
   const result = {};
-  const regex = /<(\w+)><!\[CDATA\[(.*?)\]\]><\/\1>/g;
+  const regex = /<(\w+)><!\[CDATA\[(.*?)\]\]><\/\1>|<(\w+)>(.*?)<\/\3>/g;
   let match;
   
   while ((match = regex.exec(xml)) !== null) {
-    result[match[1]] = match[2];
+    const key = match[1] || match[3];
+    const value = match[2] || match[4];
+    result[key] = value;
   }
   
   return result;
@@ -129,7 +127,7 @@ async function callUnifiedOrder(orderInfo) {
     spbill_create_ip: clientIp,
     notify_url: PAYMENT_CONFIG.notifyUrl,
     trade_type: 'JSAPI',
-    openid: userId
+    openid: userId.startsWith('test_') ? 'oGZUI0egBJY1ik-5AgWnSjIDfa7c' : userId
   };
   
   // 生成签名
@@ -180,15 +178,16 @@ function generateMiniProgramPaymentParams(prepayId) {
   const packageStr = `prepay_id=${prepayId}`;
   const signType = 'MD5';
   
-  // 生成支付签名
+  // 构造签名参数
   const paySignParams = {
     appId: PAYMENT_CONFIG.appId,
-    timeStamp,
-    nonceStr,
+    timeStamp: timeStamp,
+    nonceStr: nonceStr,
     package: packageStr,
-    signType
+    signType: signType
   };
   
+  // 生成支付签名
   const paySign = generateSign(paySignParams, PAYMENT_CONFIG.apiKey);
   
   return {
@@ -201,8 +200,8 @@ function generateMiniProgramPaymentParams(prepayId) {
 }
 
 /**
- * 查询订单支付状态
- * @param {string} orderId 订单号
+ * 查询订单状态
+ * @param {string} orderId 订单ID
  * @returns {Promise<Object>} 查询结果
  */
 async function queryOrderStatus(orderId) {
@@ -213,8 +212,10 @@ async function queryOrderStatus(orderId) {
     nonce_str: generateNonceStr()
   };
   
+  // 生成签名
   params.sign = generateSign(params, PAYMENT_CONFIG.apiKey);
   
+  // 转换为XML
   const xmlData = objectToXml(params);
   
   try {
@@ -227,17 +228,13 @@ async function queryOrderStatus(orderId) {
     
     const result = xmlToObject(response.data);
     
-    if (result.return_code === 'SUCCESS') {
-      return {
-        success: true,
-        tradeState: result.trade_state,
-        transactionId: result.transaction_id,
-        totalFee: parseInt(result.total_fee),
-        timeEnd: result.time_end
-      };
-    } else {
-      throw new Error(result.return_msg || '查询订单失败');
-    }
+    return {
+      success: result.return_code === 'SUCCESS' && result.result_code === 'SUCCESS',
+      tradeState: result.trade_state,
+      transactionId: result.transaction_id,
+      totalFee: parseInt(result.total_fee) || 0,
+      rawData: result
+    };
     
   } catch (error) {
     console.error('查询订单状态失败:', error);
@@ -246,22 +243,23 @@ async function queryOrderStatus(orderId) {
 }
 
 /**
- * 生成订单号
- * @param {string} prefix 前缀
- * @returns {string} 订单号
+ * 生成订单ID
+ * @returns {string} 订单ID
  */
-function generateOrderId(prefix = 'ORDER') {
+function generateOrderId() {
   const timestamp = Date.now();
-  const random = Math.random().toString(36).substr(2, 9).toUpperCase();
-  return `${prefix}_${timestamp}_${random}`;
+  const random = Math.random().toString(36).substring(2, 11).toUpperCase();
+  return `ORDER_${timestamp}_${random}`;
 }
 
 /**
- * 生成支付流水号
- * @returns {string} 支付流水号
+ * 生成支付ID
+ * @returns {string} 支付ID
  */
 function generatePaymentId() {
-  return generateOrderId('PAY');
+  const timestamp = Date.now();
+  const random = Math.random().toString(36).substring(2, 11).toUpperCase();
+  return `PAY_${timestamp}_${random}`;
 }
 
 module.exports = {
