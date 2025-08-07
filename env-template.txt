@@ -21,3 +21,5 @@ NODE_ENV=development
 
 # 对象存储配置
 STORAGE_BASE_URL=https://636c-cloudbase-8geef97fbe06f6f1-1371111601.tcb.qcloud.la
+
+WECHAT_SECRET=b1bfc8790bb32b780bb9cf4f022958ef
