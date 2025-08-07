@@ -1,0 +1,23 @@
+# 微信支付配置
+# 请复制此文件为 .env 并填入真实的配置值
+
+# 微信小程序AppID
+WECHAT_APPID=wxe48f433772f6ca68
+
+# 微信支付商户号
+WECHAT_MCHID=1723052039
+
+# 微信支付API密钥
+WECHAT_API_KEY=6yHvP4n9JgKbL7qRd1tF8cYxXaZ2wE39
+
+# 支付回调通知URL
+PAYMENT_NOTIFY_URL=https://test-175573-5-1371111601.sh.run.tcloudbase.com/api/payment/notify
+
+# 服务运行端口
+PORT=8080
+
+# 运行环境
+NODE_ENV=development
+
+# 对象存储配置
+STORAGE_BASE_URL=https://636c-cloudbase-8geef97fbe06f6f1-1371111601.tcb.qcloud.la
