@@ -488,13 +488,7 @@ app.post('/api/payment/unifiedorder', async (req, res) => {
       // 添加调试日志
       console.log(`统一下单开始 - 订单ID: ${orderId}, 用户ID: ${order.userId}`);
       
-      // 如果是测试用户，直接使用模拟支付
-      if (order.userId.startsWith('test_')) {
-        console.log('检测到测试用户，使用模拟支付模式');
-        throw new Error('模拟微信支付失败，切换到测试模式');
-      }
-      
-      console.log('非测试用户，调用真实微信支付接口');
+      console.log('调用真实微信支付接口');
       
       // 调用微信统一下单API
       const wechatResult = await paymentUtils.callUnifiedOrder({
@@ -559,51 +553,8 @@ app.post('/api/payment/unifiedorder', async (req, res) => {
     } catch (wechatError) {
       console.error('微信统一下单失败:', wechatError);
       
-      // 如果是测试环境或测试用户，返回模拟数据
-      if (process.env.NODE_ENV === 'development' || order.userId.startsWith('test_')) {
-        const mockPayment = {
-          paymentId,
-          orderId,
-          userId: order.userId,
-          paymentMethod: 'wechat',
-          amount: order.amount,
-          currency: 'CNY',
-          status: 'pending',
-          wechatPayment: {
-            appId: paymentUtils.PAYMENT_CONFIG.appId,
-            mchId: 'mock_mch_id',
-            nonceStr: paymentUtils.generateNonceStr(),
-            prepayId: 'mock_prepay_id',
-            transactionId: null,
-            tradeType: 'JSAPI',
-            signType: 'MD5',
-            paySign: 'mock_pay_sign'
-          },
-          createdAt: now.toISOString(),
-          paidAt: null
-        };
-        
-        payments.set(paymentId, mockPayment);
-        order.paymentId = paymentId;
-        orders.set(orderId, order);
-        
-        res.json({
-          code: 0,
-          data: {
-            orderId,
-            paymentId,
-            timeStamp: Math.floor(Date.now() / 1000).toString(),
-            nonceStr: mockPayment.wechatPayment.nonceStr,
-            package: 'prepay_id=' + mockPayment.wechatPayment.prepayId,
-            signType: 'MD5',
-            paySign: mockPayment.wechatPayment.paySign,
-            mockMode: true
-          },
-          message: '创建支付成功（测试模式）'
-        });
-      } else {
-        throw wechatError;
-      }
+      // 强制使用真实支付，不再提供模拟支付
+      throw new Error('微信支付失败，请检查配置: ' + wechatError.message);
     }
     
   } catch (error) {

@@ -127,7 +127,7 @@ async function callUnifiedOrder(orderInfo) {
     spbill_create_ip: clientIp,
     notify_url: PAYMENT_CONFIG.notifyUrl,
     trade_type: 'JSAPI',
-    openid: userId.startsWith('test_') || userId.startsWith('oGZUI') ? process.env.WECHAT_APPID : userId
+    openid: userId
   };
   
   // 生成签名
