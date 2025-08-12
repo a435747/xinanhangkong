@@ -4,8 +4,8 @@
   "description": "名师林数字化小程序支付API服务",
   "main": "app-fixed.js",
   "scripts": {
-    "start": "node app-fixed.js",
-    "dev": "nodemon app-fixed.js",
+    "start": "NODE_ENV=production node app-fixed.js",
+    "dev": "NODE_ENV=development nodemon app-fixed.js",
     "test": "jest"
   },
   "dependencies": {
