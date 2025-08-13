@@ -8,13 +8,24 @@ const axios = require('axios');
 
 // 微信支付配置
 const PAYMENT_CONFIG = {
-  appId: process.env.WECHAT_APPID,
+  appId: process.env.WECHAT_APPID || 'wxe48f433772f6ca68', // 使用你的小程序appid
   mchId: process.env.WECHAT_MCHID || '1723052039',
   apiKey: process.env.WECHAT_API_KEY || '6yHvP4n9JgKbL7qRd1tF8cYxXaZ2wE39',
   notifyUrl: process.env.PAYMENT_NOTIFY_URL || 'https://test-175573-5-1371111601.sh.run.tcloudbase.com/api/payment/notify',
   unifiedOrderUrl: process.env.NODE_ENV === 'development' ? 'https://api.mch.weixin.qq.com/sandboxnew/pay/unifiedorder' : 'https://api.mch.weixin.qq.com/pay/unifiedorder',
   orderQueryUrl: process.env.NODE_ENV === 'development' ? 'https://api.mch.weixin.qq.com/sandboxnew/pay/orderquery' : 'https://api.mch.weixin.qq.com/pay/orderquery'
 };
+
+// 调试：打印支付配置
+console.log('微信支付配置:', {
+  appId: PAYMENT_CONFIG.appId,
+  mchId: PAYMENT_CONFIG.mchId,
+  apiKey: PAYMENT_CONFIG.apiKey ? '***已设置***' : '***未设置***',
+  notifyUrl: PAYMENT_CONFIG.notifyUrl,
+  unifiedOrderUrl: PAYMENT_CONFIG.unifiedOrderUrl,
+  orderQueryUrl: PAYMENT_CONFIG.orderQueryUrl,
+  nodeEnv: process.env.NODE_ENV
+});
 
 /**
  * 生成随机字符串
@@ -76,7 +87,11 @@ function objectToXml(obj) {
   let xml = '<xml>';
   for (const key in obj) {
     if (obj.hasOwnProperty(key)) {
-      xml += `<${key}><![CDATA[${obj[key]}]]></${key}>`;
+      // 确保值不为undefined或null
+      const value = obj[key];
+      if (value !== undefined && value !== null && value !== '') {
+        xml += `<${key}><![CDATA[${value}]]></${key}>`;
+      }
     }
   }
   xml += '</xml>';
@@ -117,24 +132,37 @@ async function callUnifiedOrder(orderInfo) {
   } = orderInfo;
   
   // 构造请求参数
+  console.log('微信统一下单参数:', {
+    orderId,
+    amount,
+    description,
+    userId,
+    clientIp
+  });
+  
   const params = {
     appid: PAYMENT_CONFIG.appId,
     mch_id: PAYMENT_CONFIG.mchId,
     nonce_str: generateNonceStr(),
     body: description,
     out_trade_no: orderId,
-    total_fee: amount,
+    total_fee: parseInt(amount), // 确保是整数
     spbill_create_ip: clientIp,
     notify_url: PAYMENT_CONFIG.notifyUrl,
     trade_type: 'JSAPI',
     openid: userId
   };
   
+  console.log('微信API请求参数:', params);
+  
   // 生成签名
   params.sign = generateSign(params, PAYMENT_CONFIG.apiKey);
   
+  console.log('签名后的参数:', params);
+  
   // 转换为XML
   const xmlData = objectToXml(params);
+  console.log('XML数据:', xmlData);
   
   try {
     // 调用微信API

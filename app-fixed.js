@@ -375,12 +375,30 @@ app.post('/api/orders', (req, res) => {
     const now = new Date();
     const expiredAt = new Date(now.getTime() + 30 * 60 * 1000); // 30分钟后过期
     
+    // 确保amount是有效的整数
+    const orderAmount = parseInt(amount);
+    if (isNaN(orderAmount) || orderAmount <= 0) {
+      return res.status(400).json({
+        code: -1,
+        message: '无效的订单金额'
+      });
+    }
+    
+    console.log('创建订单参数:', {
+      orderId,
+      userId,
+      orderType,
+      amount: orderAmount,
+      title,
+      description
+    });
+    
     const order = {
       orderId,
       userId,
       orderType,
       status: 'pending',
-      amount: parseInt(amount),
+      amount: orderAmount,
       currency: 'CNY',
       title,
       description,
@@ -544,9 +562,16 @@ app.post('/api/payment/unifiedorder', async (req, res) => {
       console.log('调用真实微信支付接口');
       
       // 调用微信统一下单API
-      const wechatResult = await paymentUtils.callUnifiedOrder({
+      console.log('统一下单参数:', {
         orderId,
         amount: order.amount,
+        description: order.title,
+        userId: order.userId
+      });
+      
+      const wechatResult = await paymentUtils.callUnifiedOrder({
+        orderId,
+        amount: parseInt(order.amount), // 确保是整数
         description: order.title,
         userId: order.userId,
         clientIp: req.ip || '127.0.0.1'
