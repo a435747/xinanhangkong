@@ -273,8 +273,8 @@ app.post('/api/auth/login', async (req, res) => {
     // 调用微信接口获取openid
     const response = await axios.get('https://api.weixin.qq.com/sns/jscode2session', {
       params: {
-        appid: process.env.WECHAT_APPID || 'wxe48f433772f6ca68',
-        secret: process.env.WECHAT_SECRET || 'b1bfc8790bb32b780bb9cf4f022958ef',
+        appid: process.env.WECHAT_APPID,
+        secret: process.env.WECHAT_SECRET,
         js_code: code,
         grant_type: 'authorization_code'
       },
@@ -448,6 +448,59 @@ app.get('/api/orders/:orderId', (req, res) => {
   }
 });
 
+// 💳 创建订单
+app.post('/api/payment/createorder', async (req, res) => {
+  try {
+    const { userId, treeId, amount, description } = req.body;
+    
+    if (!userId || !treeId || !amount) {
+      return res.status(400).json({
+        code: -1,
+        message: '缺少必要参数'
+      });
+    }
+    
+    // 生成订单ID
+    const orderId = paymentUtils.generateOrderId();
+    const now = new Date();
+    const expiredAt = new Date(now.getTime() + 30 * 60 * 1000); // 30分钟后过期
+    
+    // 创建订单
+    const order = {
+      orderId,
+      userId,
+      treeId,
+      amount,
+      title: description || '浇水支付',
+      description: description || '浇水支付',
+      status: 'pending',
+      paymentMethod: null,
+      paymentId: null,
+      createdAt: now.toISOString(),
+      updatedAt: now.toISOString(),
+      expiredAt: expiredAt.toISOString()
+    };
+    
+    // 保存订单
+    orders.set(orderId, order);
+    
+    console.log(`订单创建成功: ${orderId}, 用户: ${userId}, 金额: ${amount}`);
+    
+    res.json({
+      code: 0,
+      data: order,
+      message: '订单创建成功'
+    });
+    
+  } catch (error) {
+    console.error('创建订单失败:', error);
+    res.status(500).json({
+      code: -1,
+      message: '创建订单失败：' + error.message
+    });
+  }
+});
+
 // 💳 统一下单（创建支付）
 app.post('/api/payment/unifiedorder', async (req, res) => {
   try {
@@ -488,13 +541,7 @@ app.post('/api/payment/unifiedorder', async (req, res) => {
       // 添加调试日志
       console.log(`统一下单开始 - 订单ID: ${orderId}, 用户ID: ${order.userId}`);
       
-      // 如果是测试用户，直接使用模拟支付
-      if (order.userId.startsWith('test_')) {
-        console.log('检测到测试用户，使用模拟支付模式');
-        throw new Error('模拟微信支付失败，切换到测试模式');
-      }
-      
-      console.log('非测试用户，调用真实微信支付接口');
+      console.log('调用真实微信支付接口');
       
       // 调用微信统一下单API
       const wechatResult = await paymentUtils.callUnifiedOrder({
@@ -559,51 +606,8 @@ app.post('/api/payment/unifiedorder', async (req, res) => {
     } catch (wechatError) {
       console.error('微信统一下单失败:', wechatError);
       
-      // 如果是测试环境或测试用户，返回模拟数据
-      if (process.env.NODE_ENV === 'development' || order.userId.startsWith('test_')) {
-        const mockPayment = {
-          paymentId,
-          orderId,
-          userId: order.userId,
-          paymentMethod: 'wechat',
-          amount: order.amount,
-          currency: 'CNY',
-          status: 'pending',
-          wechatPayment: {
-            appId: paymentUtils.PAYMENT_CONFIG.appId,
-            mchId: 'mock_mch_id',
-            nonceStr: paymentUtils.generateNonceStr(),
-            prepayId: 'mock_prepay_id',
-            transactionId: null,
-            tradeType: 'JSAPI',
-            signType: 'MD5',
-            paySign: 'mock_pay_sign'
-          },
-          createdAt: now.toISOString(),
-          paidAt: null
-        };
-        
-        payments.set(paymentId, mockPayment);
-        order.paymentId = paymentId;
-        orders.set(orderId, order);
-        
-        res.json({
-          code: 0,
-          data: {
-            orderId,
-            paymentId,
-            timeStamp: Math.floor(Date.now() / 1000).toString(),
-            nonceStr: mockPayment.wechatPayment.nonceStr,
-            package: 'prepay_id=' + mockPayment.wechatPayment.prepayId,
-            signType: 'MD5',
-            paySign: mockPayment.wechatPayment.paySign,
-            mockMode: true
-          },
-          message: '创建支付成功（测试模式）'
-        });
-      } else {
-        throw wechatError;
-      }
+      // 强制使用真实支付，不再提供模拟支付
+      throw new Error('微信支付失败，请检查配置: ' + wechatError.message);
     }
     
   } catch (error) {
@@ -695,6 +699,55 @@ app.post('/api/payment/notify', (req, res) => {
   } catch (error) {
     console.error('处理支付回调失败:', error);
     res.send('<xml><return_code><![CDATA[FAIL]]></return_code><return_msg><![CDATA[系统错误]]></return_msg></xml>');
+  }
+});
+
+// 🔍 查询支付状态
+app.get('/api/payment/status/:orderId', async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    
+    // 查询订单
+    const order = orders.get(orderId);
+    if (!order) {
+      return res.status(404).json({
+        code: -1,
+        message: '订单不存在'
+      });
+    }
+    
+    // 查询支付记录
+    const payment = payments.get(order.paymentId);
+    if (!payment) {
+      return res.json({
+        code: 0,
+        data: {
+          orderStatus: order.status,
+          paymentStatus: 'pending',
+          transactionId: null,
+          paidAt: null
+        },
+        message: '查询成功'
+      });
+    }
+    
+    res.json({
+      code: 0,
+      data: {
+        orderStatus: order.status,
+        paymentStatus: payment.status,
+        transactionId: payment.wechatPayment?.transactionId,
+        paidAt: payment.paidAt
+      },
+      message: '查询成功'
+    });
+    
+  } catch (error) {
+    console.error('查询支付状态失败:', error);
+    res.status(500).json({
+      code: -1,
+      message: '查询支付状态失败：' + error.message
+    });
   }
 });
 
